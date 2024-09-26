@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { UncontrolledReactCodeMirror } from '@uiw/react-codemirror';
-import { javascript } from '@codemirror/lang-javascript';
-import { githubDark } from '@uiw/codemirror-theme-github';
+import dynamic from 'next/dynamic';
+
+const CodeMirror = dynamic(
+  () => import('@uiw/react-codemirror').then((mod) => mod.UncontrolledReactCodeMirror),
+  { ssr: false }
+);
 
 const defaultCode = `
 function App() {
@@ -20,18 +23,20 @@ export default function ReactPreview() {
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      try {
-        const transformedCode = Babel.transform(code, {
-          presets: ['react'],
-        }).code;
-        const executeCode = new Function('React', 'ReactDOM', `
-          ${transformedCode}
-          ReactDOM.render(React.createElement(App), document.getElementById('preview'));
-        `);
-        executeCode(React, ReactDOM);
-        setOutput('');
-      } catch (error) {
-        setOutput(error.toString());
+      if (typeof window !== 'undefined') {
+        try {
+          const transformedCode = window.Babel.transform(code, {
+            presets: ['react'],
+          }).code;
+          const executeCode = new Function('React', 'ReactDOM', `
+            ${transformedCode}
+            ReactDOM.render(React.createElement(App), document.getElementById('preview'));
+          `);
+          executeCode(window.React, window.ReactDOM);
+          setOutput('');
+        } catch (error) {
+          setOutput(error.toString());
+        }
       }
     }, 1000);
 
@@ -42,13 +47,17 @@ export default function ReactPreview() {
     <div className="flex flex-col md:flex-row h-screen bg-gray-100">
       <div className="w-full md:w-1/2 p-4">
         <h2 className="text-xl font-semibold mb-2">React Code</h2>
-        <UncontrolledReactCodeMirror
-          value={code}
-          height="calc(100vh - 100px)"
-          theme={githubDark}
-          extensions={[javascript({ jsx: true })]}
-          onChange={(value) => setCode(value)}
-        />
+        {typeof window !== 'undefined' && (
+          <CodeMirror
+            value={code}
+            height="calc(100vh - 100px)"
+            theme="dark"
+            onChange={(value) => setCode(value)}
+            options={{
+              mode: 'jsx',
+            }}
+          />
+        )}
       </div>
       <div className="w-full md:w-1/2 p-4">
         <h2 className="text-xl font-semibold mb-2">Preview</h2>
