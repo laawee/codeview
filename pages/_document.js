@@ -5,9 +5,9 @@ class MyDocument extends Document {
     return (
       <Html>
         <Head>
-          <script src="https://cdnjs.cloudflare.com/ajax/libs/react/17.0.2/umd/react.production.min.js"></script>
-          <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/17.0.2/umd/react-dom.production.min.js"></script>
-          <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/6.26.0/babel.min.js"></script>
+          <script src="https://unpkg.com/react@17.0.2/umd/react.production.min.js"></script>
+          <script src="https://unpkg.com/react-dom@17.0.2/umd/react-dom.production.min.js"></script>
+          <script src="https://unpkg.com/@babel/standalone@7.14.7/babel.min.js"></script>
         </Head>
         <body>
           <Main />
