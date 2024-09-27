@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
+import Script from 'next/script';
 
 const CodeMirror = dynamic(
   () => import('@uiw/react-codemirror').then((mod) => mod.UncontrolledReactCodeMirror),
@@ -20,54 +21,70 @@ function App() {
 export default function ReactPreview() {
   const [code, setCode] = useState(defaultCode);
   const [output, setOutput] = useState('');
+  const [scriptsLoaded, setScriptsLoaded] = useState(false);
 
   useEffect(() => {
+    if (!scriptsLoaded) return;
+
     const timer = setTimeout(() => {
-      if (typeof window !== 'undefined') {
-        try {
-          const transformedCode = window.Babel.transform(code, {
-            presets: ['react'],
-          }).code;
-          const executeCode = new Function('React', 'ReactDOM', `
-            ${transformedCode}
-            ReactDOM.render(React.createElement(App), document.getElementById('preview'));
-          `);
-          executeCode(window.React, window.ReactDOM);
-          setOutput('');
-        } catch (error) {
-          setOutput(error.toString());
-        }
+      try {
+        const transformedCode = window.Babel.transform(code, {
+          presets: ['react'],
+        }).code;
+        const executeCode = new Function('React', 'ReactDOM', `
+          ${transformedCode}
+          ReactDOM.render(React.createElement(App), document.getElementById('preview'));
+        `);
+        executeCode(window.React, window.ReactDOM);
+        setOutput('');
+      } catch (error) {
+        setOutput(error.toString());
       }
     }, 1000);
 
     return () => clearTimeout(timer);
-  }, [code]);
+  }, [code, scriptsLoaded]);
 
   return (
-    <div className="flex flex-col md:flex-row h-screen bg-gray-100">
-      <div className="w-full md:w-1/2 p-4">
-        <h2 className="text-xl font-semibold mb-2">React Code</h2>
-        {typeof window !== 'undefined' && (
-          <CodeMirror
-            value={code}
-            height="calc(100vh - 100px)"
-            theme="dark"
-            onChange={(value) => setCode(value)}
-            options={{
-              mode: 'jsx',
-            }}
-          />
-        )}
+    <>
+      <Script
+        src="https://unpkg.com/react@17/umd/react.development.js"
+        onLoad={() => setScriptsLoaded(prev => prev || false)}
+      />
+      <Script
+        src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"
+        onLoad={() => setScriptsLoaded(prev => prev || false)}
+      />
+      <Script
+        src="https://unpkg.com/@babel/standalone/babel.min.js"
+        onLoad={() => setScriptsLoaded(true)}
+      />
+
+      <div className="flex flex-col md:flex-row h-screen bg-gray-100">
+        <div className="w-full md:w-1/2 p-4">
+          <h2 className="text-xl font-semibold mb-2">React Code</h2>
+          {typeof window !== 'undefined' && (
+            <CodeMirror
+              value={code}
+              height="calc(100vh - 100px)"
+              theme="dark"
+              onChange={(value) => setCode(value)}
+              options={{
+                mode: 'jsx',
+              }}
+            />
+          )}
+        </div>
+        <div className="w-full md:w-1/2 p-4">
+          <h2 className="text-xl font-semibold mb-2">Preview</h2>
+          <div id="preview" className="border rounded-lg p-4 bg-white h-[calc(100vh-100px)] overflow-auto"></div>
+          {output && (
+            <div className="mt-4 p-2 bg-red-100 border border-red-400 rounded text-red-700">
+              {output}
+            </div>
+          )}
+        </div>
       </div>
-      <div className="w-full md:w-1/2 p-4">
-        <h2 className="text-xl font-semibold mb-2">Preview</h2>
-        <div id="preview" className="border rounded-lg p-4 bg-white h-[calc(100vh-100px)] overflow-auto"></div>
-        {output && (
-          <div className="mt-4 p-2 bg-red-100 border border-red-400 rounded text-red-700">
-            {output}
-          </div>
-        )}
-      </div>
-    </div>
+    </>
   );
 }
